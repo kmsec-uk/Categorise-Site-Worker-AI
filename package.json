@@ -1,10 +1,10 @@
 {
-  "name": "what-site",
+  "name": "catsite",
   "version": "0.0.0",
   "private": true,
   "scripts": {
     "deploy": "wrangler deploy",
-    "dev": "wrangler dev",
+    "dev": "wrangler dev --ip 0.0.0.0",
     "start": "wrangler dev",
     "test": "vitest",
     "cf-typegen": "wrangler types"

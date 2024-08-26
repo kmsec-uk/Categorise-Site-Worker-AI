@@ -1,9 +1,8 @@
 #:schema node_modules/wrangler/config-schema.json
-name = "what-site"
+name = "catsite"
 main = "src/index.ts"
 compatibility_date = "2024-08-15"
 compatibility_flags = ["nodejs_compat"]
-
 # Automatically place your workloads in an optimal location to minimize latency.
 # If you are running back-end logic in a Worker, running it closer to your back-end infrastructure
 # rather than the end user may result in better performance.
@@ -106,3 +105,9 @@ compatibility_flags = ["nodejs_compat"]
 # [[vectorize]]
 # binding = "MY_INDEX"
 # index_name = "my-index"
+[ai]
+binding = "AI"
+
+[[kv_namespaces]]
+binding = "catsite"
+id = "8872fc0f198847c0944725e7417fb57d"
