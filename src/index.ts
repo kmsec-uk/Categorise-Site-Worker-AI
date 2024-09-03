@@ -1,3 +1,4 @@
+import { WorkerEntrypoint } from "cloudflare:workers";
 import { industries, countries } from "./data"
 import type { Country, Industry, Region } from "./data"
 
@@ -151,7 +152,7 @@ async function classifyWithModel(env: Env, domain: string): Promise<string> {
   
   Reply only with comma separated list of categories relevant to the domain. Only use the categories listed above. If you are unable to categorise a domain due to low confidence, use "Other".`},
 				{ role: "user", content: "lseg.com" },
-				{ role: "assistant", content: "Financial services, Information Technology and Internet" },
+				{ role: "assistant", content: "Financial Services, Information Technology and Internet" },
 				{ role: "user", content: "reddit.com" },
 				{ role: "assistant", content: "Social Network" },
 				{ role: "user", content: "amazon.com" },
@@ -165,7 +166,7 @@ async function classifyWithModel(env: Env, domain: string): Promise<string> {
 				{ role: "user", content: domain }
 			],
 		});
-
+		// console.log(rsp)
 		return rsp.response
 
 	} catch (e) {
@@ -203,7 +204,7 @@ async function geolocateWithModel(env: Env, domain: string): Promise<string> {
 				{ role: "user", content: domain }
 			],
 		});
-		// console.log(rsp.response)
+		// console.log(rsp)
 		return rsp.response
 	} catch (e) {
 		return "Other"
@@ -354,6 +355,9 @@ function checkAuth(request: Request, env: Env): boolean {
 	return false
 }
 
+export class CatSite extends WorkerEntrypoint {
+	async categorise(env: Env, domain: string) { return await main(env, domain) }
+  }
 
 export default {
 	async fetch(request, env): Promise<Response> {
