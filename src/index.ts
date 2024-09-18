@@ -1,6 +1,11 @@
 import { WorkerEntrypoint } from "cloudflare:workers";
-import { industries, countries } from "./data"
-import type { Country, Industry, Region } from "./data"
+import {classifyWithModel,geolocateWithModel} from "./withllm"
+import { industries, countries, countryRegex, industryRegex } from "./data"
+import type { Region, DuckDuckGoResponse, WorkerResponse } from "./types"
+import {CategoryData} from "./v2"
+// @ts-ignore - importing raw HTML is possible in Cloudflare Workers https://blog.cloudflare.com/workers-javascript-modules/
+import loginHTML from "./login.html"
+
 
 export interface Env {
 	AI: Ai;
@@ -9,49 +14,13 @@ export interface Env {
 	catsiteauth: string;
 }
 
-const model = "@hf/nousresearch/hermes-2-pro-mistral-7b"
 
-/** Response from DuckDuckGo API (*not search results) */
-type DuckDuckGoResponse = {
-	Abstract: string;
-	AbstractSource: string;
-	AbstractText: string;
-	AbstractURL: string;
-	Answer: string;
-	AnswerType: string;
-	Definition: string;
-	DefinitionSource: string;
-	DefinitionURL: string;
-	Entity: string;
-	Heading: string;
-	Image: string;
-	ImageHeight: string;
-	ImageIsLogo: string;
-	ImageWidth: string;
-	Infobox: string;
-	Redirect: string;
-	RelatedTopics: any[];
-	Results: any[];
-	Type: string;
-	meta: any;
-};
-/** The JSON response object from the categorisation API for a certain domain */
-type WorkerResponse = {
-	domain: string;
-	country: Country;
-	region: Region;
-	categories: Industry[];
-	meta: {
-		time_categorised: number,
-		by: "human" | "llm"
-	}
-}
+
 
 type catRequest = typeof examplecatReq
 
 /** An example JSON payload for re-categorising a site. */
 const examplecatReq = {
-	"domain": "kmsec.uk",
 	"country": "United Kingdom",
 	"region": "Western Europe",
 	"categories": [
@@ -60,33 +29,7 @@ const examplecatReq = {
 }
 
 
-const loginHTML = `
-<!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Authenticate</title>
-  </head>
-  <body>
-    <h1>Authenticate for browser-based testing</h1>
-	<p>This service is meant to be used as an API with "x-catsite-auth" header, however it can be tested on your browser if you authenticate with the secret token.</p>
-	<form method="POST" enctype="application/x-www-form-urlencoded" action="/auth">
-		<label>Auth
-		<input name="auth" type="password"/>
-		</label>
-		<button type="submit">Submit</button>
-	</form>
-  </body>
-</html>
-`
 
-
-/** Generated named match groups from the list of industries */
-const industryRegex = new RegExp(industries.map(i => `(?<${i.id}>${i.name})`).join("|"), 'gi')
-
-/** Generated regex content of all countries. */
-const countryRegex = new RegExp(countries.map(c => c.country).join("|"), "i")
 
 
 /** Scrape the HTML version of DuckDuckGo for results pertaining to the domain. Only the first six results are used, as any further down the ranking is low-confidence */
@@ -99,7 +42,7 @@ async function scrapeDuckDuckGo(domain: string): Promise<string> {
 		scrape: "text",
 		pretty: "false"
 	}).toString()
-	
+
 	const url = "https://web.scraper.workers.dev/?" + param
 
 	try {
@@ -138,80 +81,7 @@ async function checkDuckDuckGo(domain: string): Promise<string> {
 }
 
 
-/** Classify a domain according to a set of industries using an LLM */
-async function classifyWithModel(env: Env, domain: string): Promise<string> {
-	try {
-		const rsp: any = await env.AI.run(model, {
-			stream: false,
-			max_tokens: 128,
-			messages: [
-				{
-					role: "system", content: `Your role is to categorise domains according to the categories listed below:
-  
-  ${industries.join("\n")}
-  
-  Reply only with comma separated list of categories relevant to the domain. Only use the categories listed above. If you are unable to categorise a domain due to low confidence, use "Other".`},
-				{ role: "user", content: "lseg.com" },
-				{ role: "assistant", content: "Financial Services, Information Technology and Internet" },
-				{ role: "user", content: "reddit.com" },
-				{ role: "assistant", content: "Social Network" },
-				{ role: "user", content: "amazon.com" },
-				{ role: "assistant", content: "E-commerce, Information Technology and Internet" },
-				{ role: "user", content: "facebook.com" },
-				{ role: "assistant", content: "Social Network" },
-				{ role: "user", content: "kmsec.uk" },
-				{ role: "assistant", content: "Information Technology and Internet, Cybersecurity" },
-				{ role: "user", content: "pornhub.com" },
-				{ role: "assistant", content: "Adult Content" },
-				{ role: "user", content: domain }
-			],
-		});
-		// console.log(rsp)
-		return rsp.response
-
-	} catch (e) {
-		return "Other"
-	}
-}
-
-/** Classify a domain's geolocation (country) using an LLM. This is only done when a domain does not use a [non-generalised](https://en.wikipedia.org/wiki/Country_code_top-level_domain#Generic_ccTLDs) ccTLD. */
-async function geolocateWithModel(env: Env, domain: string): Promise<string> {
-	try {
-		const rsp: any = await env.AI.run(model, {
-			stream: false,
-			max_tokens: 128,
-			messages: [
-				{
-					role: "system", content: `Your role is to assign a country to a domain based on where the domain historically is from.
-
-					You must only use the following countries to assign to a domain:
-					
-					${countries.map(c => c.country).join("\n")}
-
-  Reply with the geolocation country. If you are unable to assign a geolocation, use "Other"`},
-				{ role: "user", content: "lseg.com" },
-				{ role: "assistant", content: "United Kingdom" },
-				{ role: "user", content: "reddit.com" },
-				{ role: "assistant", content: "United States of America" },
-				{ role: "user", content: "amazon.com" },
-				{ role: "assistant", content: "United States of America" },
-				{ role: "user", content: "shell.com" },
-				{ role: "assistant", content: "United Kingdom" },
-				{ role: "user", content: "kmsec.uk" },
-				{ role: "assistant", content: "United Kingdom" },
-				{ role: "user", content: "sap.com" },
-				{ role: "assistant", content: "Germany" },
-				{ role: "user", content: domain }
-			],
-		});
-		// console.log(rsp)
-		return rsp.response
-	} catch (e) {
-		return "Other"
-	}
-}
-
-/**Categorise a domain with geolocation and industries, cache response in KV metadata. */
+/**DEPRECATED in v2*/
 async function main(env: Env, domain: string): Promise<WorkerResponse | "Worker error"> {
 
 	// Try retrieve a DDG abstract for additional context for the model
@@ -292,15 +162,20 @@ async function listAllDomains(env: Env): Promise<WorkerResponse[]> {
 
 }
 
+/**DEPRECATED in v2*/
 async function updateDomain(env: Env, request: Request): Promise<Response> {
 	try {
 		const submittedContent: catRequest = await request.json()
 		// confirm the domain is a domain
 		let domain = ""
 		try {
+			// @ts-expect-error
+
 			domain = new URL(`http://${submittedContent.domain}`).hostname
 
 		} catch (e) {
+			// @ts-expect-error
+
 			return new Response(`invalid domain: ${submittedContent.domain}`, { status: 400 })
 		}
 		// ensure the region and countries are accurately labeled
@@ -313,6 +188,7 @@ async function updateDomain(env: Env, request: Request): Promise<Response> {
 				return new Response(`invalid category: ${c}`, { status: 400 })
 			}
 		})
+		// @ts-expect-error
 		await env.catsite.put(submittedContent.domain, "", {
 			metadata: {
 				domain: domain,
@@ -329,6 +205,35 @@ async function updateDomain(env: Env, request: Request): Promise<Response> {
 	} catch (e) {
 		return new Response("invalid body", { status: 400 })
 	}
+}
+
+/** Insert or overwrite the KV cache for a specific base domain */
+async function insertDomain(baseDomain: string, request: Request, env: Env): Promise<void> {
+	const submittedContent: catRequest = await request.json()
+	const region = countries.find(c => c.country === submittedContent.country)?.region
+	if (!region) {
+		throw new Error(`${submittedContent.country} is not a valid country`)
+	}
+	submittedContent.categories.forEach(c => {
+		if (!industries.some(i => i.name === c)) {
+			throw new Error(`invalid category: ${c}`)
+		}
+		
+	})
+	
+	await env.catsite.put(baseDomain, "", {
+		metadata: {
+			domain: baseDomain,
+			country: submittedContent.country,
+			region: region,
+			categories: submittedContent.categories,
+			meta: {
+				time_categorised: new Date().getTime(),
+				by: "human"
+			}
+		}
+	})
+
 }
 
 function checkAuth(request: Request, env: Env): boolean {
@@ -357,7 +262,7 @@ function checkAuth(request: Request, env: Env): boolean {
 
 export class CatSite extends WorkerEntrypoint {
 	async categorise(env: Env, domain: string) { return await main(env, domain) }
-  }
+}
 
 export default {
 	async fetch(request, env): Promise<Response> {
@@ -447,8 +352,74 @@ export default {
 					return new Response("domain parameter required\n", { status: 400 });
 				}
 			default:
-				return new Response(null, { status: 404 })
+				break
 		}
+		// VERSION 2 path: /api/v2/domain/<domain>/
+		const v2 = new RegExp(/^\/api\/v2\/domain\/(?<domain>[a-zA-Z0-9\-\.]+)\/?$/)
+		const hasDot = new RegExp(/\./)
+		const validRequest = v2.test(path)
+		if (validRequest) {
+			let domain = v2.exec(path)![1] as string
+			// basic validation of domains - must contain dot and must be longer than 3 chars.
+			if (!hasDot.test(domain) || domain.length < 4) {
+				return Response.json({ error: "invalid domain", domain : domain }, { status: 400 })
+			}
+
+			domain = domain.toLowerCase()
+			// Process
+			const userinput = new CategoryData(domain, env)
+			// we cache based on the `base domain` property
+			// if the second level domain is present, the base domain depth is 3
+			// e.g. `example.co.uk`, where `co` is the SLD
+			if (userinput.hasSLD()) {
+				console.log(userinput.sld)
+				userinput.base = userinput.domainarray.slice(-3).join(".")
+			}
+			// if not, it's a depth of 2.
+			else {
+				userinput.base = userinput.domainarray.slice(-2).join(".")
+			}
+			switch (request.method) {
+				case "GET":
+					// if cacheoverride is not set, try to retrieve from cache
+					if (url.searchParams.get("cacheoverride") !== "true") {
+
+						var cached = await env.catsite.getWithMetadata(userinput.base)
+						if (cached.value !== null) {
+							return new Response(JSON.stringify(cached.metadata), { headers: { "Content-Type": "application/json" } })
+						}
+					}
+					const processed  = await userinput.process()
+					if ("error" in processed === false) {
+						await env.catsite.put(domain, "", {
+							metadata: processed,
+						});
+					}
+					return Response.json(processed, {status : "error" in processed ? 500 : 200, headers: { "Content-Type": "application/json" }})
+				case "POST":
+					try {
+						await insertDomain(userinput.base, request, env)
+						return Response.json({success : `successfully imported ${userinput.base}`}, {headers: { "Content-Type": "application/json" }})
+					} catch(e) {
+						if (e instanceof Error) {
+							return Response.json({error: e.message, "example_payload" : examplecatReq}, {status: 400, headers: { "Content-Type": "application/json" }})
+						}
+					}
+					break
+				case "DELETE":
+					try {
+						env.catsite.delete(userinput.base)
+						return Response.json({success : `successfully deleted ${userinput.base}`})
+					} catch(e) {
+						if (e instanceof Error) {
+							return Response.json({error: e.message}, {status: 400, headers: { "Content-Type": "application/json" }})
+						}
+					}
+				default:
+					return Response.json({error : "request method not implemented"}, {status: 400, headers: { "Content-Type": "application/json" }})
+			}
+		}
+		return Response.json({error : "not found"}, {status : 404, headers: { "Content-Type": "application/json" }})
 
 	},
 

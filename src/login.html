@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Authenticate</title>
+</head>
+
+<body style="font-family: sans-serif;">
+    <h1>Categorise Site Worker</h1>
+    <h2>Authenticate for browser-based testing</h2>
+    <p>This service is meant to be used as an API with an <code style="font-weight: bold">x-catsite-auth</code> header,
+        however it can be tested on your browser if you authenticate with the secret token.</p>
+    <form method="POST" enctype="application/x-www-form-urlencoded" action="/auth">
+        <label>Secret Token
+            <input style="display:block; margin-top: 10px; margin-bottom:10px" name="auth" type="password" autofocus />
+        </label>
+        <button type="submit">Submit</button>
+    </form>
+</body>
+
+</html>

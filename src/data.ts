@@ -1,6 +1,5 @@
-export type Industry = typeof industries[number]['name']
-export type Region = "Other" | "Middle East and North Africa" | "South and South East Asia" | "Eastern Europe" | "Sub Saharan Africa" | "Latin America" | "Western Europe" | "Western Offshoots" | "East Asia"
-export type Country = typeof countries[number]['country']
+import type { GenericSLD, SecondLevelDomain, CountryCode } from "./types"
+
 export const industries = [
     { id: "ad", name: "Adult Content" },
     { id: "ag", name: "Agriculture" },
@@ -20,6 +19,7 @@ export const industries = [
     { id: "fs", name: "Financial Services" },
     { id: "fo", name: "Food" },
     { id: "gv", name: "Government" },
+    { id: "mi", name: "Military" },
     { id: "hc", name: "Healthcare" },
     { id: "hs", name: "Hospitality" },
     { id: "it", name: "Information Technology and Internet" },
@@ -30,7 +30,10 @@ export const industries = [
     { id: "tc", name: "Telecommunications" },
 ]
 
-export const countries = [
+/** Generated named match groups from the list of industries */
+export const industryRegex = new RegExp(industries.map(i => `(?<${i.id}>${i.name})`).join("|"), 'gi')
+
+export const countries: CountryCode[] = [
     {
         "tld": "ae",
         "country": "United Arab Emirates",
@@ -160,6 +163,11 @@ export const countries = [
         "tld": "cm",
         "country": "Cameroon",
         "region": "Sub Saharan Africa"
+    },
+    {
+        "tld": "cn",
+        "country": "China",
+        "region": "East Asia"
     },
     {
         "tld": "cr",
@@ -772,3 +780,261 @@ export const countries = [
         "region": "Sub Saharan Africa"
     }
 ]
+
+/** Generated regex content of all countries. */
+export const countryRegex = new RegExp(countries.map(c => c.country).join("|"), "i")
+
+/** Generic second-level-domains that are used at the gTLD level,
+ * for example ae.com or gb.com -- these typically indicate the regionality of a domain
+ */
+export const genericSLDs: GenericSLD[] = [
+    {
+        "sld": "ae",
+        "country": "United Arab Emirates",
+        "region": "Middle East and North Africa"
+      },
+      {
+        "sld": "br",
+        "country": "Brazil",
+        "region": "Latin America"
+      },
+      {
+        "sld": "cn",
+        "country": "China",
+        "region": "East Asia"
+      },
+      {
+        "sld": "co"
+      },
+      {
+        "sld": "de",
+        "country": "Germany",
+        "region": "Western Europe"
+      },
+      {
+        "sld": "eu",
+        "region": "Western Europe"
+      },
+      {
+        "sld": "gb",
+        "country": "United Kingdom",
+        "region": "Western Europe"
+      },
+      {
+        "sld": "gr",
+        "country": "Greece",
+        "region": "Western Europe"
+      },
+      {
+        "sld": "hu",
+        "country": "Hungary",
+        "region": "Eastern Europe"
+      },
+      {
+        "sld": "in",
+        "country": "India",
+        "region": "South and South East Asia"
+      },
+      {
+        "sld": "jp",
+        "country": "Japan",
+        "region": "East Asia"
+      },
+      {
+        "sld": "jpn",
+        "country": "Japan",
+        "region": "East Asia"
+      },
+      {
+        "sld": "mex",
+        "country": "Mexico",
+        "region": "Latin America"
+      },
+      {
+        "sld": "no",
+        "country": "Norway",
+        "region": "Western Europe"
+      },
+      {
+        "sld": "ru",
+        "country": "Russia",
+        "region": "Eastern Europe"
+      },
+      {
+        "sld": "sa",
+        "country": "Saudi Arabia",
+        "region": "Middle East and North Africa"
+      },
+      {
+        "sld": "se",
+        "country": "Sweden",
+        "region": "Western Europe"
+      },
+      {
+        "sld": "uk",
+        "country": "United Kingdom",
+        "region": "Western Europe"
+      },
+      {
+        "sld": "us",
+        "country": "United States of America",
+        "region": "Western Offshoots"
+      },
+      {
+        "sld": "uy",
+        "country": "Uruguay",
+        "region": "Latin America"
+      },
+      {
+        "sld": "za",
+        "country": "South Africa",
+        "region": "Sub Saharan Africa"
+      }
+]
+
+/**Non-specific second-level domains utilised at the country-code level */
+const nonSpecificSLDs: SecondLevelDomain[] = [
+    { sld: "gov", category: "Government" },
+    { sld: "gob", category: "Government" },
+    { sld: "gv", category: "Government" },
+    { sld: "govt", category: "Government" },
+    { sld: "parliament", category: "Government" },
+    { sld: "police", category: "Government" },
+    { sld: "k12", category: "Education" },
+    { sld: "edu", category: "Education" },
+    { sld: "school", category: "Education" },
+    { sld: "sch", category: "Education" },
+    { sld: "mil", category: "Military" },
+    { sld: "health", category: "Healthcare" },
+    { sld: "ac", category: "Education" },
+    { sld: "org", category: null },
+    { sld: "net", category: null },
+    { sld: "co", category: null },
+    { sld: "com", category: null },
+    { sld: "info", category: null },
+    { sld: "in", category: null },
+    { sld: "biz", category: null },
+
+]
+
+/** Second-level domains under the .fr TLD */
+const frSLDs = [
+    // French
+    { sld: "gouv", category: "Government" },
+    { sld: "avocat", category: "Legal" },
+    { sld: "aeroport", category: "Transportation" },
+]
+
+/** Second-level domains under the .uk TLD */
+const ukSLDs: SecondLevelDomain[] = [
+    { sld: "bl", category: "Education" }, // British Library is technically education
+    { sld: "org", category: "Non-Profit" },
+    { sld: "judiciary", category: "Legal" },
+    { sld: "ltd", category: null },
+    { sld: "me", category: "Other" },
+    { sld: "mod", category: "Military" },
+    { sld: "nhs", category: "Healthcare" },
+    { sld: "nic", category: "Telecommunications" }, // nominet
+    { sld: "net", category: "Telecommunications" }, // https://www.nominet.uk/wp-content/uploads/2015/10/Rules_June_2014.pdf
+    { sld: "parliament", category: "Government" },
+    { sld: "plc", category: null },
+    { sld: "rct", category: "Other" },
+    { sld: "royal", category: "Other" },
+    { sld: "ukaea", category: "Government" },
+]
+
+/** Ukraine has several regional SLDs and contractions/variations of those SLDs.
+ *  Usage of these regional SLDs does not define the category
+ *  https://en.wikipedia.org/wiki/.ua#Second-level_domains
+ */
+const uaSLDs: SecondLevelDomain[] = [
+    { sld: "cherkassy", category: null },
+    { sld: "cherkasy", category: null },
+    { sld: "chernigov", category: null },
+    { sld: "chernihiv", category: null },
+    { sld: "chernivtsi", category: null },
+    { sld: "chernovtsy", category: null },
+    { sld: "ck", category: null },
+    { sld: "cn", category: null },
+    { sld: "cr", category: null },
+    { sld: "crimea", category: null },
+    { sld: "cv", category: null },
+    { sld: "dn", category: null },
+    { sld: "dnepropetrovsk", category: null },
+    { sld: "dnipropetrovsk", category: null },
+    { sld: "dod", category: null },
+    { sld: "donetsk", category: null },
+    { sld: "dp", category: null },
+    { sld: "if", category: null },
+    { sld: "ivano-frankivsk", category: null },
+    { sld: "kh", category: null },
+    { sld: "kharkiv", category: null },
+    { sld: "kharkov", category: null },
+    { sld: "kherson", category: null },
+    { sld: "khmelnitskiy", category: null },
+    { sld: "khmelnytskyi", category: null },
+    { sld: "kiev", category: null },
+    { sld: "kirovograd", category: null },
+    { sld: "km", category: null },
+    { sld: "kr", category: null },
+    { sld: "kropyvnytskyi", category: null },
+    { sld: "krym", category: null },
+    { sld: "ks", category: null },
+    { sld: "kv", category: null },
+    { sld: "kyiv", category: null },
+    { sld: "lg", category: null },
+    { sld: "lt", category: null },
+    { sld: "lugansk", category: null },
+    { sld: "luhansk", category: null },
+    { sld: "lutsk", category: null },
+    { sld: "lv", category: null },
+    { sld: "lviv", category: null },
+    { sld: "mk", category: null },
+    { sld: "mykolaiv", category: null },
+    { sld: "nikolaev", category: null },
+    { sld: "od", category: null },
+    { sld: "odesa", category: null },
+    { sld: "odessa", category: null },
+    { sld: "pl", category: null },
+    { sld: "poltava", category: null },
+    { sld: "rivne", category: null },
+    { sld: "rovno", category: null },
+    { sld: "rv", category: null },
+    { sld: "sb", category: null },
+    { sld: "sebastopol", category: null },
+    { sld: "sevastopol", category: null },
+    { sld: "sicheslav", category: null },
+    { sld: "sm", category: null },
+    { sld: "sumy", category: null },
+    { sld: "te", category: null },
+    { sld: "ternopil", category: null },
+    { sld: "uz", category: null },
+    { sld: "uzhgorod", category: null },
+    { sld: "uzhhorod", category: null },
+    { sld: "vinnica", category: null },
+    { sld: "vinnytsia", category: null },
+    { sld: "vn", category: null },
+    { sld: "volyn", category: null },
+    { sld: "yalta", category: null },
+    { sld: "zakarpattia", category: null },
+    { sld: "zaporizhzhe", category: null },
+    { sld: "zaporizhzhia", category: null },
+    { sld: "zhitomir", category: null },
+    { sld: "zhytomyr", category: null },
+    { sld: "zp", category: null },
+    { sld: "zt", category: null }
+]
+
+/** 
+ * ### Object containing non-exhaustive lists of country-specific and non-specific second-level domains
+ * Second-Level Domains (SLDs) make parsing a domain to retrive the domain root very hard.
+ * Generic SLDs like **co** in co.uk are common, but countries can also have their own environ of
+ * second-level domains.
+ * 
+*/
+export const sldData = {
+    "fr": frSLDs,
+    "uk": ukSLDs,
+    "ua": uaSLDs,
+    "_generic": nonSpecificSLDs
+}

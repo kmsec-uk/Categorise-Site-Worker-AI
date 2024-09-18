@@ -4,6 +4,17 @@ Use Cloudflare KV and Cloudflare Workers AI to categorise domains by industry an
 
 The use case of this project was to automate the categorisation and geographical location of victims of cybercrimes based on victim domain using serverless tooling.
 
+## Updates
+
+* v2 API is now implemented. v2 will replace v1.
+
+## Changes in v2
+
+Despite its drawbacks, this categorisation worker has been working reasonably well in an alpha project [https://ddosed.pages.dev](https://ddosed.pages.dev), but I saw some room for improvement:
+
+* Clean up the code
+* Utilise HTTP methods and path parameters
+
 ## Caveats
 
 **This was built to dabble in the Cloudflare Workers AI platform and should not be used for anything other than inspiration.** There are several issues with this implementation:
