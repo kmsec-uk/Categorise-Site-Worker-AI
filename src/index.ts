@@ -386,12 +386,13 @@ export default {
 
 						var cached = await env.catsite.getWithMetadata(userinput.base)
 						if (cached.value !== null) {
+							console.log("cached")
 							return new Response(JSON.stringify(cached.metadata), { headers: { "Content-Type": "application/json" } })
 						}
 					}
 					const processed  = await userinput.process()
 					if ("error" in processed === false) {
-						await env.catsite.put(domain, "", {
+						await env.catsite.put(userinput.base, "", {
 							metadata: processed,
 						});
 					}
