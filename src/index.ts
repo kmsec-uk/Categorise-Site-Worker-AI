@@ -173,8 +173,8 @@ export default {
 					break
 				case "DELETE":
 					try {
-						env.catsite.delete(userinput.base)
-						return Response.json({ success: `successfully deleted ${userinput.base}` })
+						await env.catsite.delete(userinput.domain)
+						return Response.json({ success: `successfully deleted ${userinput.domain}` })
 					} catch (e) {
 						if (e instanceof Error) {
 							return Response.json({ error: e.message }, { status: 400, headers: { "Content-Type": "application/json" } })
