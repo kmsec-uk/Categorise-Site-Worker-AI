@@ -180,6 +180,11 @@ export const countries: CountryCode[] = [
         "region": "Eastern Europe"
     },
     {
+        "tld": "cz",
+        "country": "Czech Republic",
+        "region": "Eastern Europe"
+    },
+    {
         "tld": "de",
         "country": "Germany",
         "region": "Western Europe"

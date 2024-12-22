@@ -4,22 +4,12 @@ Use Cloudflare KV and Cloudflare Workers AI to categorise domains by industry an
 
 The use case of this project was to automate the categorisation and geographical location of victims of cybercrimes based on victim domain using serverless tooling.
 
-## Updates
-
-* v2 API is now implemented. v2 will replace v1.
-
-## Changes in v2
-
-Despite its drawbacks, this categorisation worker has been working reasonably well in an alpha project [https://ddosed.pages.dev](https://ddosed.pages.dev), but I saw some room for improvement:
-
-* Clean up the code
-* Utilise HTTP methods and path parameters
+Despite its drawbacks, this categorisation worker has been working reasonably well in one of my projects [https://ddosed.pages.dev](https://ddosed.pages.dev).
 
 ## Caveats
 
 **This was built to dabble in the Cloudflare Workers AI platform and should not be used for anything other than inspiration.** There are several issues with this implementation:
 
-* This was thrown together very quickly and frankly isn't written very well.
 * The request time is prohibitively high (~5s!) for real-time categorisation.
 * An LLM's ability to categorise a domain is tightly correlated with the context available (and therefore how well-established a domain is). The methods used in this project to get context on what a domain is actually used for are limited (see below).
 * Although some basic input sanitisation is done on the domain, the domain is not verified fully before processing. This can lead to unexpected behaviour like categorising nonexistent domains.
@@ -28,7 +18,7 @@ As the initial effort to request an LLM to categorise a site is quite high, this
 
 ## Using this service
 
-This is meant to be used as an API for other tooling. There is no front-end, although you can do basic browser-based viewing as well, as long as the required cookie is set (see Authentication).
+To try this Worker out, you need to clone this repository. This is meant to be used as an API for other tooling. There is no front-end, although you can do basic browser-based viewing as well, as long as the required cookie is set (see Authentication).
 
 ### Authentication
 
@@ -37,7 +27,7 @@ To reduce the chance of abuse or incurring charges on my own service, I implemen
 * Header: `x-catsite-auth`
 * Cookie: `catsite`
 
- To try this Worker out, you need to clone this repository and add a `catsiteauth` secret using Wrangler before deploying yourself (after pasting the following command in, you will be prompted to enter the value of the secret. This value is what you will need to pass as the `x-catsite-auth` header, or set as the cookie by using the browser authentication function):
+Add a `catsiteauth` secret using Wrangler before deploying yourself (after pasting the following command in, you will be prompted to enter the value of the secret. This value is what you will need to pass as the `x-catsite-auth` header, or set as the cookie by using the browser authentication function):
 
 ```
 wrangler secret put catsiteauth
@@ -46,7 +36,7 @@ wrangler secret put catsiteauth
 ### Request a domain categorisation
 
 ```bash
-curl -H "x-catsite-auth : <MY-AUTH-HEADER>" "https://<worker-domain>/api/?domain=kmsec.uk"
+curl -H "x-catsite-auth : <MY-AUTH-HEADER>" "https://<worker-domain>/api/v2/domain/kmsec.uk/"
 
 {
   "domain": "kmsec.uk",
@@ -68,7 +58,7 @@ curl -H "x-catsite-auth : <MY-AUTH-HEADER>" "https://<worker-domain>/api/?domain
 Sometimes the cached data does not sufficiently categorise a domain correctly, or you may implement some new way to gain high quality context on a domain. In this case, you can bypass the category cache for a particular domain by setting the `cacheoverride` URL parameter to `true`:
 
 ```bash
-curl -H "x-catsite-auth : <MY-AUTH-HEADER>" "https://<worker-domain>/api/?domain=kmsec.uk&cacheoverride=true"
+curl -H "x-catsite-auth : <MY-AUTH-HEADER>" "https://<worker-domain>/api/v2/domain/kmsec.uk&cacheoverride=true"
 
 {
   "domain": "kmsec.uk",
@@ -87,10 +77,10 @@ curl -H "x-catsite-auth : <MY-AUTH-HEADER>" "https://<worker-domain>/api/?domain
 
 ## Override a category
 
-Sometimes the LLM will not be able to categorise anything well at all. You can override or input your own categories with a POST request to the `/api/update/` route with a JSON object. Note you only need to provide the country as the region is inferred from the internal data:
+Sometimes the LLM will not be able to categorise anything well at all. You can override or input your own categories with a POST request with a JSON object. Note you only need to provide the country as the region is inferred from the internal data:
 
 ```bash
-curl -H "x-catsite-auth : <MY-AUTH-HEADER>" -d '{"domain":"kmsec.uk","country":"United Kingdom","categories":["Information Technology and Internet"]}' 'https://<worker-domain>/api/update'
+curl -H "x-catsite-auth : <MY-AUTH-HEADER>" -d '{"country":"United Kingdom","categories":["Information Technology and Internet"]}' 'https://<worker-domain>/api/v2/domain/kmsec.uk'
 
 successfully indexed kmsec.uk
 ```
