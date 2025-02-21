@@ -345,6 +345,11 @@ export const countries: CountryCode[] = [
         "region": "Middle East and North Africa"
     },
     {
+        "tld": "it",
+        "country": "Italy",
+        "region": "Western Europe"
+    },
+    {
         "tld": "jm",
         "country": "Jamaica",
         "region": "Latin America"
