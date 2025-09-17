@@ -113,8 +113,17 @@ export default {
 			case "/api/all/":
 			case "/api/all":
 				if (request.method !== "GET") return new Response("only GET method supported at this endpoint", { status: 400 })
-				const domains = await listAllDomains(env)
-				return new Response(JSON.stringify(domains, null, 2), { status: 200, headers: { "content-type": "application/json" } })
+				var domains = await listAllDomains(env)
+				return new Response(JSON.stringify(domains, null, 2), { status: 200, headers: { "content-type": "application/json" }} )
+			case "/api/clearall":
+				if (request.method !== "GET") return new Response("only GET method supported at this endpoint", { status: 400 })
+				var cache = await env.catsite.list()
+				if (cache.keys) {
+					for (const key of cache.keys) {
+						await env.catsite.delete(key.name)
+					}
+				}
+				return new Response(JSON.stringify({deleted : cache}, null, 2), { status: 200, headers: { "content-type": "application/json" }} )
 			default:
 				break
 		}
