@@ -1,6 +1,6 @@
 import { countries, industries } from "./data";
 
-const model = "@hf/thebloke/openhermes-2.5-mistral-7b-awq"
+const model = "@cf/mistralai/mistral-small-3.1-24b-instruct"
 
 /** Classify a domain according to a set of industries using an LLM */
 export async function classifyWithModel(env: Env, domain: string): Promise<string> {
