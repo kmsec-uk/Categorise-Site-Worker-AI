@@ -12,7 +12,7 @@ export async function classifyWithModel(env: Env, domain: string): Promise<strin
 				{
 					role: "system", content: `Your role is to categorise domains according to the categories listed below:
   
-  ${industries.join("\n")}
+  ${industries.map(i => i.name).join("\n")}
   
   Reply only with comma separated list of categories relevant to the domain. Only use the categories listed above. If you are unable to categorise a domain due to low confidence, use "Other".`},
 				{ role: "user", content: "lseg.com" },
